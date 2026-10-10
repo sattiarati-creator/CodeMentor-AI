@@ -1,0 +1,340 @@
+openapi: 3.0.3
+info:
+  title: CodeMentor AI REST API
+  description: >
+    Adaptive Coding Coach & Interview Intelligence Platform API.
+    Provides authentication, problem management, Dockerized code execution, Socratic hints,
+    why-did-i-fail diagnostics, Learning DNA mastery analytics, roadmaps, and company readiness.
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000/api
+    description: Local Development Server
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Service is healthy
+
+  /auth/register:
+    post:
+      summary: Register a new student account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                  example: Alex Chen
+                email:
+                  type: string
+                  example: alex@example.com
+                password:
+                  type: string
+                  example: Secret123!
+      responses:
+        '201':
+          description: Registration successful
+        '400':
+          description: Validation error
+        '409':
+          description: Email already registered
+
+  /auth/login:
+    post:
+      summary: Login to account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  example: demo@codementor.ai
+                password:
+                  type: string
+                  example: Password123!
+      responses:
+        '200':
+          description: Login successful with JWT token
+        '401':
+          description: Invalid email or password
+
+  /auth/me:
+    get:
+      summary: Get current authenticated user profile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile data
+        '401':
+          description: Unauthorized
+
+  /problems:
+    get:
+      summary: List coding problems
+      parameters:
+        - in: query
+          name: difficulty
+          schema:
+            type: string
+            enum: [Easy, Medium, Hard]
+        - in: query
+          name: topic
+          schema:
+            type: string
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of problems
+
+  /problems/{idOrSlug}:
+    get:
+      summary: Get problem detail by ID or Slug
+      parameters:
+        - in: path
+          name: idOrSlug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Problem details, sample test cases, and hint levels
+        '404':
+          description: Problem not found
+
+  /code/run:
+    post:
+      summary: Run code against custom input (does not store submission)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                language:
+                  type: string
+                  default: python
+                input:
+                  type: string
+      responses:
+        '200':
+          description: Execution result with stdout, runtime, memory
+
+  /code/submit:
+    post:
+      summary: Submit code against all problem test cases
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [problemId, code]
+              properties:
+                problemId:
+                  type: string
+                code:
+                  type: string
+                language:
+                  type: string
+                  default: python
+                hintsUsed:
+                  type: integer
+                  default: 0
+      responses:
+        '200':
+          description: Submission verdict, runtime, test case evaluations
+
+  /submissions:
+    get:
+      summary: List user submission history
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Submission list
+    post:
+      summary: Submit code against all problem test cases
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [problemId, code]
+              properties:
+                problemId:
+                  type: string
+                code:
+                  type: string
+                language:
+                  type: string
+                  default: python
+                hintsUsed:
+                  type: integer
+                  default: 0
+      responses:
+        '200':
+          description: Submission verdict, runtime, test case evaluations
+
+  /ai/hint:
+    post:
+      summary: Request Socratic progressive hint (Levels 1 to 6)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [problemTitle]
+              properties:
+                problemId:
+                  type: string
+                problemTitle:
+                  type: string
+                studentCode:
+                  type: string
+                hintLevel:
+                  type: integer
+                  minimum: 1
+                  maximum: 6
+                  example: 1
+      responses:
+        '200':
+          description: Socratic hint without solution spoiler (Level 6 only if explicitly requested)
+
+  /ai/debug:
+    post:
+      summary: Interactive Debug Tutor assistance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [problemTitle, studentCode]
+              properties:
+                problemTitle:
+                  type: string
+                studentCode:
+                  type: string
+                testInput:
+                  type: string
+                expectedOutput:
+                  type: string
+                actualOutput:
+                  type: string
+      responses:
+        '200':
+          description: Targeted debugging guidance and questions
+
+  /ai/analyze-failure:
+    post:
+      summary: Why-Did-I-Fail Root Cause Analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [problemTitle, verdict]
+              properties:
+                problemTitle:
+                  type: string
+                verdict:
+                  type: string
+                  example: Wrong Answer
+                studentCode:
+                  type: string
+                failedInput:
+                  type: string
+                expectedOutput:
+                  type: string
+                actualOutput:
+                  type: string
+      responses:
+        '200':
+          description: Root cause hypothesis, edge cases to check, complexity gap
+
+  /analytics/dashboard:
+    get:
+      summary: Get user analytics dashboard summary
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Solved count, streak, acceptance rate, Learning DNA overview
+
+  /analytics/learning-dna:
+    get:
+      summary: Get complete Learning DNA topic mastery
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 0-100 topic mastery scores and prerequisite guidance
+
+  /roadmap:
+    get:
+      summary: Get active personalized roadmap
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Multi-week roadmap schedule
+
+  /roadmap/generate:
+    post:
+      summary: Generate adaptive roadmap based on weak topics
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                targetCompany:
+                  type: string
+                  example: Google
+      responses:
+        '201':
+          description: Newly generated roadmap
+
+  /company/readiness:
+    get:
+      summary: Get estimated company readiness benchmarks
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Company preparation scores (0-100) with disclaimers
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

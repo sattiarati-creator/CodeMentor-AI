@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String         @id @default(uuid())
+  email        String         @unique
+  name         String
+  passwordHash String
+  role         String         @default("student")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  submissions  Submission[]
+  learningDNA  LearningDNA[]
+  roadmaps     Roadmap[]
+  companyScores CompanyScore[]
+
+  @@map("users")
+}
+
+model Topic {
+  id          String         @id @default(uuid())
+  name        String         @unique
+  slug        String         @unique
+  description String?
+  order       Int            @default(0)
+
+  problems    Problem[]
+  learningDNA LearningDNA[]
+  roadmapItems RoadmapItem[]
+
+  @@map("topics")
+}
+
+model Problem {
+  id           String       @id @default(uuid())
+  title        String
+  slug         String       @unique
+  difficulty   String       // "Easy", "Medium", "Hard"
+  description  String       @db.Text
+  inputFormat  String       @db.Text
+  outputFormat String       @db.Text
+  constraints  String       @db.Text
+  examples     Json         // [{ input, output, explanation }]
+  starterCode  String       @db.Text
+  topicId      String
+  order        Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  topic        Topic        @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  testCases    TestCase[]
+  submissions  Submission[]
+  hints        Hint[]
+
+  @@map("problems")
+}
+
+model TestCase {
+  id             String   @id @default(uuid())
+  problemId      String
+  input          String   @db.Text
+  expectedOutput String   @db.Text
+  isSample       Boolean  @default(false)
+  explanation    String?  @db.Text
+
+  problem        Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@map("test_cases")
+}
+
+model Submission {
+  id               String   @id @default(uuid())
+  userId           String
+  problemId        String
+  code             String   @db.Text
+  language         String   @default("python")
+  verdict          String   // "Accepted", "Wrong Answer", "Time Limit Exceeded", "Runtime Error", "Compilation Error"
+  runtimeMs        Float?
+  memoryKb         Float?
+  passedTestCases  Int      @default(0)
+  totalTestCases   Int      @default(0)
+  failedCaseDetails Json?   // details about failed test case if any
+  createdAt        DateTime @default(now())
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem          Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@map("submissions")
+}
+
+model Hint {
+  id        String   @id @default(uuid())
+  problemId String
+  level     Int      // 1 to 5
+  title     String
+  content   String   @db.Text
+
+  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@unique([problemId, level])
+  @@map("hints")
+}
+
+model LearningDNA {
+  id                String   @id @default(uuid())
+  userId            String
+  topicId           String
+  masteryScore      Float    @default(0.0) // 0 to 100
+  problemsAttempted Int      @default(0)
+  problemsSolved    Int      @default(0)
+  hintsUsedCount    Int      @default(0)
+  retriesCount      Int      @default(0)
+  updatedAt         DateTime @updatedAt
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic             Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, topicId])
+  @@map("learning_dna")
+}
+
+model Roadmap {
+  id            String        @id @default(uuid())
+  userId        String
+  title         String
+  targetCompany String?       // e.g. "Google", "Amazon", "General"
+  summary       String?       @db.Text
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items         RoadmapItem[]
+
+  @@map("roadmaps")
+}
+
+model RoadmapItem {
+  id               String   @id @default(uuid())
+  roadmapId        String
+  topicId          String
+  weekNumber       Int
+  title            String
+  description      String   @db.Text
+  status           String   @default("pending") // "pending", "in_progress", "completed"
+  targetProblemIds Json?    // array of problem IDs or slugs
+
+  roadmap          Roadmap  @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  topic            Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@map("roadmap_items")
+}
+
+model CompanyScore {
+  id          String   @id @default(uuid())
+  userId      String
+  companyName String   // "Google", "Microsoft", "Amazon", "Meta", "Atlassian", "Adobe"
+  score       Float    @default(0.0) // 0 to 100
+  breakdown   Json?    // category contributions
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, companyName])
+  @@map("company_scores")
+}
