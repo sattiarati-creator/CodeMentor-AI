@@ -5,6 +5,7 @@ import { prisma } from "../config/database";
 import { generateToken } from "../utils/jwt";
 import { successResponse, errorResponse } from "../utils/response";
 import { AuthenticatedRequest } from "../middlewares/auth.middleware";
+import { logger } from "../utils/logger";
 
 export const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(50),
@@ -61,6 +62,7 @@ export class AuthController {
         201
       );
     } catch (error: any) {
+      logger.error("Registration error:", error);
       return errorResponse(res, error.message || "Registration failed", 500);
     }
   }
@@ -103,6 +105,7 @@ export class AuthController {
         "Login successful"
       );
     } catch (error: any) {
+      logger.error("Login error:", error);
       return errorResponse(res, error.message || "Login failed", 500);
     }
   }
@@ -130,6 +133,7 @@ export class AuthController {
 
       return successResponse(res, { user });
     } catch (error: any) {
+      logger.error("GetMe error:", error);
       return errorResponse(res, error.message || "Failed to fetch profile", 500);
     }
   }

@@ -3,6 +3,7 @@ import { prisma } from "../config/database";
 import { cache } from "../config/redis";
 import { successResponse, errorResponse } from "../utils/response";
 import { AuthenticatedRequest } from "../middlewares/auth.middleware";
+import { logger } from "../utils/logger";
 
 export class ProblemController {
   async listProblems(req: AuthenticatedRequest, res: Response) {
@@ -71,6 +72,7 @@ export class ProblemController {
 
       return successResponse(res, formatted);
     } catch (error: any) {
+      logger.error("List problems error:", error);
       return errorResponse(res, error.message || "Failed to list problems", 500);
     }
   }
@@ -116,6 +118,7 @@ export class ProblemController {
 
       return successResponse(res, problem);
     } catch (error: any) {
+      logger.error("Get problem by ID/slug error:", error);
       return errorResponse(res, error.message || "Failed to retrieve problem", 500);
     }
   }
@@ -139,6 +142,7 @@ export class ProblemController {
 
       return successResponse(res, topics);
     } catch (error: any) {
+      logger.error("List topics error:", error);
       return errorResponse(res, error.message || "Failed to list topics", 500);
     }
   }

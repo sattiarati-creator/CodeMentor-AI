@@ -62,11 +62,18 @@ jobs:
           DATABASE_URL: "postgresql://postgres:postgrespassword@localhost:5432/codementor_test?schema=public"
         run: npx prisma generate
 
-      - name: Run Database Migrations
+      - name: Push Database Schema
         working-directory: ./backend
         env:
           DATABASE_URL: "postgresql://postgres:postgrespassword@localhost:5432/codementor_test?schema=public"
-        run: npx prisma migrate deploy || npx prisma db push
+        run: npx prisma db push --skip-generate
+
+      - name: Seed Database
+        working-directory: ./backend
+        env:
+          DATABASE_URL: "postgresql://postgres:postgrespassword@localhost:5432/codementor_test?schema=public"
+          JWT_SECRET: "test-jwt-secret-key-at-least-32-chars-long"
+        run: npm run prisma:seed
 
       - name: Run Backend Tests
         working-directory: ./backend

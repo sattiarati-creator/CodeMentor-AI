@@ -148,6 +148,7 @@ async function main() {
 
   // 5. Seed Sample Submissions for Demo User
   console.log("Seeding sample submissions history...");
+  await prisma.submission.deleteMany({ where: { userId: demoUser.id } });
   const firstProblem = await prisma.problem.findUnique({ where: { slug: "target-sum-pair-finder" } });
   if (firstProblem) {
     await prisma.submission.create({
@@ -191,6 +192,7 @@ async function main() {
 
   // 7. Seed Roadmap
   console.log("Seeding Personalized Roadmap...");
+  await prisma.roadmap.deleteMany({ where: { userId: demoUser.id } });
   const roadmap = await prisma.roadmap.create({
     data: {
       userId: demoUser.id,
